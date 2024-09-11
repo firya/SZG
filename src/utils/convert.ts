@@ -3,7 +3,7 @@ import * as CANNON from "cannon-es";
 
 export function convertCannonBodyToMesh(
   body: CANNON.Body,
-  material: THREE.MeshStandardMaterial,
+  material: THREE.Material,
 ): THREE.Mesh {
   let geometry: THREE.BufferGeometry;
 
@@ -32,6 +32,7 @@ export function convertCannonBodyToMesh(
         cylinderShape.height,
         32,
       );
+      geometry.rotateX(Math.PI / 2);
       break;
 
     case CANNON.Shape.types.TRIMESH:
@@ -61,7 +62,6 @@ export function convertCannonBodyToMesh(
       for (let i = 0; i <= width; i++) {
         for (let j = 0; j <= depth; j++) {
           const index = (i * (depth + 1) + j) * 3 + 2;
-          console.log(index);
           verticesArray[index] = heightfieldShape.data[i][j];
         }
       }
