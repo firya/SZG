@@ -1,13 +1,3 @@
-import { createScene } from "@/components/scene";
-import { createSkyBox } from "@/components/skybox";
-import { createLight } from "@/components/light";
-import { createTerrain } from "@/components/terrain";
-import { Car, createCar } from "@/components/car";
+import { SceneManager } from "@/components/scene";
 
-createScene();
-createSkyBox();
-createLight();
-createTerrain();
-createCar();
-
-const car = new Car();
+new SceneManager(false);
