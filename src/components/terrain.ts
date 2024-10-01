@@ -5,6 +5,7 @@ import { convertCannonBodyToMesh } from "@/utils/convert.ts";
 export class Terrain {
   private scene: THREE.Scene;
   private world: CANNON.World;
+  public groundMaterial = new CANNON.Material("ground");
 
   constructor(scene: THREE.Scene, world: CANNON.World) {
     this.scene = scene;
@@ -13,9 +14,9 @@ export class Terrain {
   }
 
   private init() {
-    const sizeX = 100;
-    const sizeZ = 100;
-    const segments = 50;
+    const sizeX = 1000;
+    const sizeZ = 1000;
+    const segments = 1000;
 
     const heightfield = this.createHeightfield(sizeX, sizeZ, segments);
 
@@ -28,6 +29,7 @@ export class Terrain {
     plane.castShadow = true;
 
     this.world.addBody(heightfield);
+
     this.scene.add(plane);
   }
 
@@ -44,7 +46,7 @@ export class Terrain {
       for (let j = 0; j <= segments; j++) {
         const x = i * elementSize - width / 2;
         const z = j * elementSize - depth / 2;
-        const y = Math.cos(x * 0.3) * Math.cos(z * 0.3) * 1;
+        const y = Math.sin(i * 0.1) * Math.cos(j * 0.2);
         row.push(y);
       }
       matrix.push(row);
@@ -54,7 +56,10 @@ export class Terrain {
       elementSize: elementSize,
     });
 
-    const heightfieldBody = new CANNON.Body({ mass: 0 });
+    const heightfieldBody = new CANNON.Body({
+      mass: 0,
+      material: this.groundMaterial,
+    });
     heightfieldBody.addShape(heightfieldShape);
     heightfieldBody.position.set(-width / 2, 0, depth / 2);
     heightfieldBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);

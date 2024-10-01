@@ -4,8 +4,13 @@ import { Car } from "./car";
 import { Terrain } from "@/components/terrain.ts";
 import CannonDebugger from "cannon-es-debugger";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import * as dat from "dat.gui";
+
+const defaultCameraOffset = new THREE.Vector3(10, 10, 10);
 
 export class SceneManager {
+  public debug: boolean;
+
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
@@ -17,7 +22,10 @@ export class SceneManager {
   private ambientLight: THREE.AmbientLight;
   private controls: any; // TODO
   private cannonDebugger: any; // TODO
-  debug: boolean;
+  private GUI: dat.GUI;
+  private settings = {
+    wireframe: false,
+  };
 
   constructor(debug = false) {
     this.debug = debug;
@@ -39,7 +47,39 @@ export class SceneManager {
     this.car = new Car(this.scene, this.world);
     this.terrain = new Terrain(this.scene, this.world);
 
+    // TODO
+    const wheel_ground = new CANNON.ContactMaterial(
+      this.car.wheelMaterial,
+      this.terrain.groundMaterial,
+      {
+        friction: 1,
+        restitution: 0,
+        contactEquationStiffness: 1,
+      },
+    );
+    this.world.addContactMaterial(wheel_ground);
+
+    if (this.debug) this.initGUI();
+
     this.animate();
+  }
+
+  private initGUI() {
+    this.GUI = new dat.GUI();
+
+    this.GUI.add({ click: () => this.car.reset() }, "click").name("Reset Car");
+    const renderFolder = this.GUI.addFolder("Rendering");
+    // TODO: Hide cannon wireframe when disabled
+    renderFolder
+      .add(this.settings, "wireframe")
+      .name("Cannon Debugger")
+      .onChange((value) => {
+        if (value) {
+          this.createDebugger();
+        } else {
+          this.cannonDebugger = null;
+        }
+      });
   }
 
   private createDebugger() {
@@ -86,16 +126,18 @@ export class SceneManager {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.25;
+    this.controls.minDistance = 20;
+    this.controls.maxDistance = 20;
     this.controls.screenSpacePanning = false;
     this.controls.maxPolarAngle = Math.PI / 2;
 
     // Set up isometric view
-    this.camera.position.set(10, 10, 10);
+    this.camera.position.copy(defaultCameraOffset);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   }
 
   private createSkyBox() {
-    const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
+    const skyboxGeometry = new THREE.BoxGeometry(1000, 1000, 1000);
     const skyboxMaterial = new THREE.ShaderMaterial({
       uniforms: {
         topColor: { value: new THREE.Color(0x87ceeb) }, // Light blue
@@ -104,24 +146,24 @@ export class SceneManager {
         exponent: { value: 0.6 },
       },
       vertexShader: `
-            varying vec3 vWorldPosition;
-            void main() {
-                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-                vWorldPosition = worldPosition.xyz;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPosition.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
       fragmentShader: `
-            uniform vec3 topColor;
-            uniform vec3 bottomColor;
-            uniform float offset;
-            uniform float exponent;
-            varying vec3 vWorldPosition;
-            void main() {
-                float h = normalize(vWorldPosition + offset).y;
-                gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
-            }
-        `,
+        uniform vec3 topColor;
+        uniform vec3 bottomColor;
+        uniform float offset;
+        uniform float exponent;
+        varying vec3 vWorldPosition;
+        void main() {
+          float h = normalize(vWorldPosition + offset).y;
+          gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+        }
+      `,
       side: THREE.BackSide,
     });
     const skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
@@ -141,11 +183,23 @@ export class SceneManager {
     }
     this.lastCallTime = time;
 
+    if (this.car.initialized) {
+      this.car.update();
+
+      this.controls.target.copy(this.car.position);
+
+      this.camera.position.copy(
+        new THREE.Vector3(
+          this.car.position.x + defaultCameraOffset.x,
+          this.car.position.y + defaultCameraOffset.y,
+          this.car.position.z + defaultCameraOffset.z,
+        ),
+      );
+    }
     this.controls.update();
-    this.car.update();
 
     if (this.debug) {
-      this.cannonDebugger.update();
+      this.cannonDebugger?.update();
     }
 
     this.renderer.render(this.scene, this.camera);

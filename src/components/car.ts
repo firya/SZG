@@ -4,11 +4,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { threeToCannon, ShapeType } from "three-to-cannon";
 
 const wheelOptions = {
-  radius: 0.8,
+  radius: 0.5,
   directionLocal: new CANNON.Vec3(0, -1, 0),
-  suspensionStiffness: 40,
+  suspensionStiffness: 30,
   suspensionRestLength: 0.3,
-  frictionSlip: 2,
+  frictionSlip: 1.4,
   dampingRelaxation: 2.3,
   dampingCompression: 4.4,
   maxSuspensionForce: 100000,
@@ -35,6 +35,9 @@ export class Car {
   private physicsVehicle: CANNON.RaycastVehicle;
   private physicsWheels: CANNON.Body[] = [];
 
+  public wheelMaterial = new CANNON.Material("wheel");
+  public initialized = false;
+
   constructor(scene: THREE.Scene, world: CANNON.World) {
     this.scene = scene;
     this.world = world;
@@ -45,6 +48,11 @@ export class Car {
     await this.loadModel();
     this.setupPhysics();
     this.setupControls();
+    this.initialized = true;
+  }
+
+  get position(): THREE.Vector3 {
+    return this.physicsChassis.position;
   }
 
   private async loadModel() {
@@ -60,6 +68,9 @@ export class Car {
       }
       if (child.name === "car") {
         this.carMesh = child as THREE.Mesh;
+      }
+      if (child.name === "chassis2") {
+        child.visible = false;
       }
       if (child.name === "chassis") {
         child.visible = false;
@@ -77,7 +88,11 @@ export class Car {
     const chassisShape = result.shape;
 
     // Create chassis
-    this.physicsChassis = new CANNON.Body({ mass: 1000 });
+    this.physicsChassis = new CANNON.Body({
+      mass: 150,
+      linearDamping: 0.1,
+      angularDamping: 0.1,
+    });
     this.physicsChassis.addShape(chassisShape);
     this.physicsVehicle = new CANNON.RaycastVehicle({
       chassisBody: this.physicsChassis,
@@ -98,20 +113,19 @@ export class Car {
     });
 
     // Create wheels body for cannon es debug
-    const wheelMaterial = new CANNON.Material("wheel");
-    this.physicsVehicle.wheelInfos.forEach((wheel) => {
+    this.physicsVehicle.wheelInfos.forEach((wheel, index) => {
       const cylinderShape = new CANNON.Cylinder(
         wheel.radius,
         wheel.radius,
-        wheel.radius,
+        index % 2 === 0 ? 0.8 : 1.7,
         20,
       );
       const wheelBody = new CANNON.Body({
         mass: 0,
-        material: wheelMaterial,
+        material: this.wheelMaterial,
+        type: CANNON.Body.KINEMATIC,
+        collisionFilterGroup: 0,
       });
-      wheelBody.type = CANNON.Body.KINEMATIC;
-      wheelBody.collisionFilterGroup = 0; // turn off collisions
       const quaternion = new CANNON.Quaternion().setFromEuler(
         -Math.PI / 2,
         0,
@@ -125,11 +139,19 @@ export class Car {
     this.physicsVehicle.addToWorld(this.world);
   }
 
+  public reset() {
+    this.physicsChassis.position.set(0, 4, 0);
+    this.physicsChassis.quaternion.set(0, 0, 0, 1);
+    this.physicsChassis.velocity.set(0, 0, 0);
+    this.physicsChassis.angularVelocity.set(0, 0, 0);
+  }
+
   update() {
-    this.physicsVehicle.updateWheelTransform(0);
-    this.physicsVehicle.updateWheelTransform(1);
-    this.physicsVehicle.updateWheelTransform(2);
-    this.physicsVehicle.updateWheelTransform(3);
+    this.physicsVehicle.updateWheelTransform(0); // front left
+    this.physicsVehicle.updateWheelTransform(1); // rear left
+    this.physicsVehicle.updateWheelTransform(2); // front right
+    this.physicsVehicle.updateWheelTransform(3); // rear right
+
     for (let i = 0; i < this.physicsVehicle.wheelInfos.length; i++) {
       const wheelInfo = this.physicsVehicle.wheelInfos[i];
       const transform = wheelInfo.worldTransform;
@@ -154,7 +176,7 @@ export class Car {
   private setupControls() {
     document.addEventListener("keydown", (event) => {
       const maxSteerVal = 0.5;
-      const maxForce = 1000;
+      const maxForce = 100;
       const brakeForce = 100000;
 
       switch (event.key) {
@@ -187,9 +209,7 @@ export class Car {
           break;
 
         case "b":
-          this.physicsVehicle.setBrake(brakeForce, 0);
           this.physicsVehicle.setBrake(brakeForce, 1);
-          this.physicsVehicle.setBrake(brakeForce, 2);
           this.physicsVehicle.setBrake(brakeForce, 3);
           break;
       }

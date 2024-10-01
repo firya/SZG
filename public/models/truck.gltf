@@ -13,7 +13,8 @@
 				2,
 				3,
 				4,
-				5
+				5,
+				6
 			]
 		}
 	],
@@ -61,6 +62,10 @@
 				-1.1834368705749512,
 				-1.3316383361816406
 			]
+		},
+		{
+			"mesh":6,
+			"name":"chassis2"
 		}
 	],
 	"materials":[
@@ -199,6 +204,19 @@
 					},
 					"indices":24,
 					"material":2
+				}
+			]
+		},
+		{
+			"name":"Cube.001",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":25,
+						"NORMAL":26,
+						"TEXCOORD_0":27
+					},
+					"indices":12
 				}
 			]
 		}
@@ -433,6 +451,34 @@
 			"componentType":5123,
 			"count":53820,
 			"type":"SCALAR"
+		},
+		{
+			"bufferView":25,
+			"componentType":5126,
+			"count":24,
+			"max":[
+				3.0270233154296875,
+				-0.547191858291626,
+				1.3959327936172485
+			],
+			"min":[
+				-2.1729767322540283,
+				-1.8471918106079102,
+				-1.4040671586990356
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":26,
+			"componentType":5126,
+			"count":24,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":27,
+			"componentType":5126,
+			"count":24,
+			"type":"VEC2"
 		}
 	],
 	"bufferViews":[
@@ -585,11 +631,29 @@
 			"byteLength":107640,
 			"byteOffset":9945056,
 			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":10052696,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":288,
+			"byteOffset":10052984,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":192,
+			"byteOffset":10053272,
+			"target":34962
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":10052696,
+			"byteLength":10053464,
 			"uri":"truck.bin"
 		}
 	]
